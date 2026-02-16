@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Express Delivery - Buyurtma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- ===== SCREEN: Language Selection ===== -->
+    <div id="screen-language" class="screen active">
+      <div class="lang-container">
+        <div class="lang-logo">
+          <div class="lang-logo-icon">🚀</div>
+          <h1>Express Delivery</h1>
+          <p>Tezkor yetkazib berish xizmati</p>
+        </div>
+        <div class="lang-title">
+          <h2>Tilni tanlang</h2>
+          <p>Выберите язык • Choose language</p>
+        </div>
+        <div class="lang-buttons">
+          <button class="lang-btn" data-lang="uz">
+            <span class="lang-flag">🇺🇿</span>
+            <span>O'zbekcha</span>
+          </button>
+          <button class="lang-btn" data-lang="ru">
+            <span class="lang-flag">🇷🇺</span>
+            <span>Русский</span>
+          </button>
+          <button class="lang-btn" data-lang="en">
+            <span class="lang-flag">🇺🇸</span>
+            <span>English</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Order Type ===== -->
+    <div id="screen-type" class="screen">
+      <div class="type-container">
+        <button class="back-btn" id="type-back"><i class="ri-arrow-left-line"></i></button>
+        <h2 id="type-title">Buyurtma turi</h2>
+        <div class="type-buttons">
+          <button class="type-btn" data-type="delivery">
+            <div class="type-btn-icon"><i class="ri-truck-line"></i></div>
+            <span id="type-delivery-text">Yetkazib berish</span>
+            <small id="type-delivery-desc">Manzilingizga olib kelamiz</small>
+          </button>
+          <button class="type-btn" data-type="pickup">
+            <div class="type-btn-icon"><i class="ri-store-2-line"></i></div>
+            <span id="type-pickup-text">Olib ketish</span>
+            <small id="type-pickup-desc">O'zingiz olib keting</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Address ===== -->
+    <div id="screen-address" class="screen">
+      <div class="address-container">
+        <div class="address-header">
+          <button class="back-btn" id="address-back"><i class="ri-arrow-left-line"></i></button>
+          <h2 id="address-title">Manzilni kiriting</h2>
+          <button class="close-btn" id="address-close"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="address-form">
+          <div class="input-group">
+            <i class="ri-map-pin-line"></i>
+            <input type="text" id="address-input" placeholder="Manzilni kiriting...">
+          </div>
+          <div class="input-group">
+            <i class="ri-phone-line"></i>
+            <input type="tel" id="phone-input" placeholder="+998 XX XXX XX XX">
+          </div>
+          <div class="map-placeholder" id="map-area">
+            <div class="map-pin"><i class="ri-map-pin-fill"></i></div>
+            <p>📍 Xarita yuklanmoqda...</p>
+          </div>
+          <button class="btn-primary" id="confirm-address">
+            <span id="confirm-address-text">Manzilni tasdiqlash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Main Menu ===== -->
+    <div id="screen-menu" class="screen">
+      <!-- Top Bar -->
+      <div class="menu-topbar">
+        <div class="menu-topbar-left">
+          <div class="delivery-badge" id="delivery-badge">
+            <i class="ri-map-pin-line"></i>
+            <div class="delivery-info">
+              <small id="topbar-type">Yetkazib berish</small>
+              <span id="topbar-address">Manzil tanlang</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu-topbar-right">
+          <button class="icon-btn" id="btn-search"><i class="ri-search-line"></i></button>
+          <button class="icon-btn" id="btn-lang"><i class="ri-global-line"></i></button>
+        </div>
+      </div>
+
+      <!-- Search Bar (hidden by default) -->
+      <div class="search-bar hidden" id="search-bar">
+        <div class="search-input-wrap">
+          <i class="ri-search-line"></i>
+          <input type="text" id="search-input" placeholder="Qidirish...">
+          <button class="search-close" id="search-close"><i class="ri-close-line"></i></button>
+        </div>
+      </div>
+
+      <!-- Categories Tabs -->
+      <div class="categories-tabs" id="categories-tabs">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Products Grid -->
+      <div class="products-area" id="products-area">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Bottom Navigation -->
+      <div class="bottom-nav" id="bottom-nav">
+        <button class="nav-btn active" data-tab="menu">
+          <i class="ri-apps-2-line"></i>
+          <span id="nav-menu-text">Menyu</span>
+        </button>
+        <button class="nav-btn" data-tab="search">
+          <i class="ri-search-line"></i>
+          <span id="nav-search-text">Qidirish</span>
+        </button>
+        <button class="nav-btn" data-tab="favorites">
+          <i class="ri-heart-line"></i>
+          <span id="nav-fav-text">Sevimlilar</span>
+        </button>
+        <button class="nav-btn" data-tab="profile">
+          <i class="ri-user-line"></i>
+          <span id="nav-profile-text">Profil</span>
+        </button>
+      </div>
+
+      <!-- Floating Cart Button -->
+      <div class="cart-float hidden" id="cart-float">
+        <button class="cart-float-btn" id="open-cart">
+          <div class="cart-float-left">
+            <i class="ri-shopping-bag-3-fill"></i>
+            <span id="cart-count">0</span>
+          </div>
+          <span id="cart-float-text">Savatcha</span>
+          <span id="cart-total">0 so'm</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Product Detail ===== -->
+    <div id="screen-product" class="screen">
+      <div class="product-detail">
+        <div class="product-detail-header">
+          <button class="back-btn light" id="product-back"><i class="ri-arrow-left-line"></i></button>
+          <button class="icon-btn light" id="product-fav"><i class="ri-heart-line"></i></button>
+        </div>
+        <div class="product-detail-image" id="product-detail-image">
+          <div class="product-placeholder-icon"><i class="ri-restaurant-line"></i></div>
+        </div>
+        <div class="product-detail-body">
+          <h2 id="product-detail-name"></h2>
+          <p class="product-detail-desc" id="product-detail-desc"></p>
+          <div class="product-detail-price-row">
+            <div class="product-detail-price">
+              <span class="price-current" id="product-detail-price"></span>
+              <span class="price-old" id="product-detail-old-price"></span>
+            </div>
+          </div>
+          <div class="product-detail-actions">
+            <div class="quantity-control">
+              <button class="qty-btn" id="qty-minus"><i class="ri-subtract-line"></i></button>
+              <span class="qty-value" id="qty-value">1</span>
+              <button class="qty-btn" id="qty-plus"><i class="ri-add-line"></i></button>
+            </div>
+            <button class="btn-add-cart" id="btn-add-cart">
+              <i class="ri-shopping-bag-3-line"></i>
+              <span id="add-cart-text">Savatga</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Cart ===== -->
+    <div id="screen-cart" class="screen">
+      <div class="cart-container">
+        <div class="cart-header">
+          <button class="back-btn" id="cart-back"><i class="ri-arrow-left-line"></i></button>
+          <h2 id="cart-title">Savatcha</h2>
+          <button class="clear-btn" id="cart-clear">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </div>
+        <div class="cart-items" id="cart-items">
+          <!-- Filled by JS -->
+        </div>
+        <div class="cart-empty hidden" id="cart-empty">
+          <i class="ri-shopping-bag-3-line"></i>
+          <p id="cart-empty-text">Savatcha bo'sh</p>
+        </div>
+        <div class="cart-summary" id="cart-summary">
+          <div class="summary-row">
+            <span id="subtotal-label">Mahsulotlar</span>
+            <span id="cart-subtotal">0 so'm</span>
+          </div>
+          <div class="summary-row" id="delivery-row">
+            <span id="delivery-label">Yetkazib berish</span>
+            <span id="cart-delivery-fee">0 so'm</span>
+          </div>
+          <div class="summary-row total">
+            <span id="total-label">Jami</span>
+            <span id="cart-total-amount">0 so'm</span>
+          </div>
+        </div>
+        <div class="cart-footer" id="cart-footer">
+          <div class="input-group comment-input">
+            <i class="ri-chat-3-line"></i>
+            <input type="text" id="order-comment" placeholder="Izoh qoldiring...">
+          </div>
+          <button class="btn-primary btn-checkout" id="btn-checkout">
+            <span id="checkout-text">Buyurtma berish</span>
+            <span id="checkout-total">0 so'm</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: Order Success ===== -->
+    <div id="screen-success" class="screen">
+      <div class="success-container">
+        <div class="success-animation">
+          <div class="success-circle">
+            <i class="ri-check-line"></i>
+          </div>
+        </div>
+        <h2 id="success-title">Buyurtma qabul qilindi!</h2>
+        <p id="success-order-number"></p>
+        <p id="success-desc">Tez orada siz bilan bog'lanamiz</p>
+        <button class="btn-primary" id="success-back">
+          <span id="success-btn-text">Bosh sahifaga</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

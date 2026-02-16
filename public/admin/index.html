@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express Delivery | Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="login-container">
+            <div class="login-card">
+                <div class="brand">
+                    <div class="logo">🚀</div>
+                    <h1>Express Delivery</h1>
+                    <p>Boshqaruv Tizimi</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Login</label>
+                        <input type="text" id="username" placeholder="admin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Parol</label>
+                        <input type="password" id="password" placeholder="••••••" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Kirish</button>
+                    <p id="login-error" class="error-msg hidden">Noto'g'ri login yoki parol</p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout -->
+        <div id="dashboard-layout" class="layout hidden">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">🚀</div>
+                    <div class="brand-text">
+                        <h2>Express</h2>
+                        <span>Delivery</span>
+                    </div>
+                </div>
+
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-item active" data-page="dashboard">
+                        <i class="ri-dashboard-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="orders">
+                        <i class="ri-shopping-bag-3-line"></i>
+                        <span>Buyurtmalar</span>
+                        <span id="new-orders-badge" class="badge hidden">0</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="products">
+                        <i class="ri-layout-grid-line"></i>
+                        <span>Mahsulotlar</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="categories">
+                        <i class="ri-folders-line"></i>
+                        <span>Kategoriyalar</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="customers">
+                        <i class="ri-group-line"></i>
+                        <span>Mijozlar</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="settings">
+                        <i class="ri-settings-3-line"></i>
+                        <span>Sozlamalar</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <button id="logout-btn" class="nav-item logout">
+                        <i class="ri-logout-box-r-line"></i>
+                        <span>Chiqish</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Topbar -->
+                <header class="topbar">
+                    <h2 id="page-title">Dashboard</h2>
+                    <div class="topbar-actions">
+                        <div class="status-indicator active">
+                            <span class="dot"></span>
+                            <span>Ochiq</span>
+                        </div>
+                        <div class="user-profile">
+                            <div class="avatar">A</div>
+                            <div class="info">
+                                <span class="name">Admin</span>
+                                <span class="role">Manager</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Page Content -->
+                <div id="page-content" class="content-area">
+                    <!-- Dashboard Page -->
+                    <div id="page-dashboard" class="page active">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="icon blue"><i class="ri-shopping-cart-2-line"></i></div>
+                                <div class="info">
+                                    <h3>Bugungi Buyurtmalar</h3>
+                                    <span id="stat-today-orders" class="value">0</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="icon orange"><i class="ri-money-dollar-circle-line"></i></div>
+                                <div class="info">
+                                    <h3>Bugungi Savdo</h3>
+                                    <span id="stat-today-revenue" class="value">0 so'm</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="icon green"><i class="ri-user-star-line"></i></div>
+                                <div class="info">
+                                    <h3>Jami Mijozlar</h3>
+                                    <span id="stat-total-customers" class="value">0</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="icon purple"><i class="ri-file-list-3-line"></i></div>
+                                <div class="info">
+                                    <h3>Jami Mahsulotlar</h3>
+                                    <span id="stat-total-products" class="value">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="recent-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>So'nggi Buyurtmalar</h3>
+                                    <button class="btn-text" onclick="navigateTo('orders')">Barchasi</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Mijoz</th>
+                                                <th>Summa</th>
+                                                <th>Holat</th>
+                                                <th>Vaqt</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashboard-orders-table">
+                                            <!-- Orders will be injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Page -->
+                    <div id="page-orders" class="page">
+                        <div class="page-header">
+                            <div class="filters">
+                                <button class="filter-btn active" data-status="all">Barchasi</button>
+                                <button class="filter-btn" data-status="new">Yangi</button>
+                                <button class="filter-btn" data-status="confirmed">Tasdiqlangan</button>
+                                <button class="filter-btn" data-status="preparing">Tayyorlanmoqda</button>
+                                <button class="filter-btn" data-status="delivering">Yetkazilmoqda</button>
+                                <button class="filter-btn" data-status="completed">Tugatilgan</button>
+                            </div>
+                        </div>
+                        <div id="orders-kanban" class="orders-grid">
+                            <!-- Orders will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Products Page -->
+                    <div id="page-products" class="page">
+                        <div class="page-header">
+                            <div class="search-box">
+                                <i class="ri-search-line"></i>
+                                <input type="text" placeholder="Qidirish...">
+                            </div>
+                            <button class="btn-primary" onclick="openProductModal()">
+                                <i class="ri-add-line"></i> Yangi Mahsulot
+                            </button>
+                        </div>
+                        <div class="table-card">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Rasm</th>
+                                        <th>Nomi</th>
+                                        <th>Kategoriya</th>
+                                        <th>Narx</th>
+                                        <th>Holat</th>
+                                        <th>Amal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table">
+                                    <!-- Products will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Categories Page -->
+                    <div id="page-categories" class="page">
+                        <div class="page-header">
+                            <button class="btn-primary" onclick="openCategoryModal()">
+                                <i class="ri-add-line"></i> Yangi Kategoriya
+                            </button>
+                        </div>
+                        <div class="categories-list" id="categories-list">
+                            <!-- Categories will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Customers Page -->
+                    <div id="page-customers" class="page">
+                        <div class="table-card">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Ism</th>
+                                        <th>Telefon</th>
+                                        <th>Username</th>
+                                        <th>Buyurtmalar</th>
+                                        <th>Ro'yxatdan o'tgan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-table">
+                                    <!-- Customers will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Settings Page -->
+                    <div id="page-settings" class="page">
+                        <div class="settings-card">
+                            <h3>Do'kon Sozlamalari</h3>
+                            <form id="settings-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Do'kon Nomi</label>
+                                        <input type="text" name="shop_name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Telefon Raqam</label>
+                                        <input type="text" name="shop_phone">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Yetkazib Berish Narxi (so'm)</label>
+                                        <input type="number" name="delivery_price">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Minimal Buyurtma (so'm)</label>
+                                        <input type="number" name="min_order">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Admin Chat ID (Telegram)</label>
+                                    <input type="text" name="admin_chat_id">
+                                </div>
+                                <div class="form-group toggle-group">
+                                    <label>Do'kon holati (Ochiq/Yopiq)</label>
+                                    <label class="switch">
+                                        <input type="checkbox" name="is_open">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn-primary">Saqlash</button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+
+        <!-- Modals -->
+
+        <!-- Order Detail Modal -->
+        <div id="order-modal" class="modal hidden">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3>Buyurtma #<span id="modal-order-id"></span></h3>
+                    <button class="close-btn" onclick="closeModal('order-modal')"><i class="ri-close-line"></i></button>
+                </div>
+                <div class="modal-body" id="order-modal-body">
+                    <!-- Order details injected here -->
+                </div>
+                <div class="modal-footer" id="order-modal-footer">
+                    <!-- Action buttons injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Modal -->
+        <div id="product-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="product-modal-title">Mahsulot Qo'shish</h3>
+                    <button class="close-btn" onclick="closeModal('product-modal')"><i
+                            class="ri-close-line"></i></button>
+                </div>
+                <form id="product-form">
+                    <input type="hidden" id="product-id">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Rasm</label>
+                            <input type="file" id="product-image" accept="image/*">
+                            <div id="image-preview" class="hidden"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nomi (UZ)</label>
+                            <input type="text" id="product-name-uz" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Kategoriya</label>
+                                <select id="product-category" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Narxi</label>
+                                <input type="number" id="product-price" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('product-modal')">Bekor
+                            qilish</button>
+                        <button type="submit" class="btn-primary">Saqlash</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Category Modal -->
+        <div id="category-modal" class="modal hidden">
+            <div class="modal-content small">
+                <div class="modal-header">
+                    <h3 id="category-modal-title">Kategoriya Qo'shish</h3>
+                    <button class="close-btn" onclick="closeModal('category-modal')"><i
+                            class="ri-close-line"></i></button>
+                </div>
+                <form id="category-form">
+                    <input type="hidden" id="category-id">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nomi (UZ)</label>
+                            <input type="text" id="category-name-uz" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Belgi (Emoji)</label>
+                            <input type="text" id="category-icon" placeholder="🍔">
+                        </div>
+                        <div class="form-group">
+                            <label>Tartib raqami</label>
+                            <input type="number" id="category-sort" value="0">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('category-modal')">Bekor
+                            qilish</button>
+                        <button type="submit" class="btn-primary">Saqlash</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
