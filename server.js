@@ -358,6 +358,23 @@ app.post('/api/admin/upload', adminAuth, upload.single('image'), (req, res) => {
     }
 });
 
+// List available icons
+app.get('/api/admin/icons', adminAuth, (req, res) => {
+    try {
+        const iconsDir = path.join(__dirname, 'uploads', 'categories');
+        if (!fs.existsSync(iconsDir)) {
+            return res.json([]);
+        }
+        const files = fs.readdirSync(iconsDir);
+        // Filter for images
+        const icons = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file))
+            .map(file => `/uploads/categories/${file}`);
+        res.json(icons);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ===== Start Server =====
 app.listen(PORT, () => {
     console.log(`\n🚀 Server ishga tushdi: http://localhost:${PORT}`);

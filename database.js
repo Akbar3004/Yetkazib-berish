@@ -131,14 +131,14 @@ if (categoryCount.count === 0) {
   `);
 
     const categories = [
-        ['Kombo', 'Комбо', 'Combo', '🍱', 1],
-        ['Lavash', 'Лаваш', 'Lavash', '🌯', 2],
-        ['Burger', 'Бургер', 'Burger', '🍔', 3],
-        ['Sendvich', 'Сэндвич', 'Sandwich', '🥪', 4],
-        ['Hot-dog', 'Хот-дог', 'Hot-dog', '🌭', 5],
-        ['Pizza', 'Пицца', 'Pizza', '🍕', 6],
-        ['Ichimliklar', 'Напитки', 'Drinks', '🥤', 7],
-        ['Desertlar', 'Десерты', 'Desserts', '🍰', 8],
+        ['Kombo', 'Комбо', 'Combo', 'fi fi-rr-box-alt', 1],
+        ['Lavash', 'Лаваш', 'Lavash', 'fi fi-rr-burrito', 2],
+        ['Burger', 'Бургер', 'Burger', 'fi fi-rr-hamburger', 3],
+        ['Sendvich', 'Сэндвич', 'Sandwich', 'fi fi-rr-sandwich', 4],
+        ['Hot-dog', 'Хот-дог', 'Hot-dog', 'fi fi-rr-hotdog', 5],
+        ['Pizza', 'Пицца', 'Pizza', 'fi fi-rr-pizza-slice', 6],
+        ['Ichimliklar', 'Напитки', 'Drinks', 'fi fi-rr-drink-alt', 7],
+        ['Desertlar', 'Десерты', 'Desserts', 'fi fi-rr-cake-slice', 8],
     ];
 
     categories.forEach(cat => insertCategory.run(...cat));
@@ -180,12 +180,12 @@ const dbHelpers = {
     getCategoryById: (id) => db.prepare('SELECT * FROM categories WHERE id = ?').get(id),
     createCategory: (data) => {
         return db.prepare(`INSERT INTO categories (name_uz, name_ru, name_en, icon, sort_order) VALUES (?, ?, ?, ?, ?)`).run(
-            data.name_uz, data.name_ru || '', data.name_en || '', data.icon || '🍽️', data.sort_order || 0
+            data.name_uz, data.name_ru || '', data.name_en || '', data.icon || 'fi fi-rr-box-alt', data.sort_order || 0
         );
     },
     updateCategory: (id, data) => {
         return db.prepare(`UPDATE categories SET name_uz = ?, name_ru = ?, name_en = ?, icon = ?, sort_order = ?, is_active = ? WHERE id = ?`).run(
-            data.name_uz, data.name_ru || '', data.name_en || '', data.icon || '🍽️', data.sort_order || 0, data.is_active ? 1 : 0, id
+            data.name_uz, data.name_ru || '', data.name_en || '', data.icon || 'fi fi-rr-box-alt', data.sort_order || 0, data.is_active ? 1 : 0, id
         );
     },
     deleteCategory: (id) => db.prepare('DELETE FROM categories WHERE id = ?').run(id),

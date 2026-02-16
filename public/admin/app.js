@@ -158,7 +158,50 @@ async function checkNewOrders() {
 }
 
 // Orders Logic
+// Orders Logic
+async function updateOrderCounts() {
+    try {
+        const orders = await api(`${ADMIN_API}/orders?limit=1000`);
+        if (!orders) return;
+
+        const counts = {
+            all: orders.length,
+            new: 0,
+            confirmed: 0,
+            preparing: 0,
+            delivering: 0,
+            completed: 0
+        };
+
+        orders.forEach(o => {
+            if (counts[o.status] !== undefined) {
+                counts[o.status]++;
+            }
+        });
+
+        // Update badges
+        for (const [key, value] of Object.entries(counts)) {
+            const btn = $(`.filter-btn[data-status="${key}"]`);
+            if (btn) {
+                const badge = btn.querySelector('.badge-count');
+                if (badge) {
+                    badge.textContent = value;
+                    if (value > 0) {
+                        badge.classList.add('positive');
+                    } else {
+                        badge.classList.remove('positive');
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Failed to update order counts:", err);
+    }
+}
+
 async function loadOrders(status = 'all') {
+    updateOrderCounts(); // Update counts whenever we load orders
+
     let url = `${ADMIN_API}/orders`;
     if (status !== 'all') url += `?status=${status}`;
 
@@ -279,8 +322,8 @@ async function loadProducts() {
             <td><span class="badge" style="background:${p.is_active ? '#10B981' : '#EF4444'}">${p.is_active ? 'Faol' : 'Nofaol'}</span></td>
             <td>
                 <div class="product-actions">
-                    <button class="btn-edit" onclick="editProduct(${p.id})"><i class="ri-pencil-line"></i></button>
-                    <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="ri-delete-bin-line"></i></button>
+                    <button class="btn-edit" onclick="editProduct(${p.id})"><i class="fi fi-rr-pencil"></i></button>
+                    <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fi fi-rr-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -344,11 +387,14 @@ async function loadCategories() {
     $('#categories-list').innerHTML = categories.map(c => `
         <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; margin-bottom:10px;">
             <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:24px;">${c.icon || '📦'}</span>
+                <span style="font-size:24px;">
+                    ${c.icon.includes('/') ? `<img src="${c.icon}" width="40" height="40" alt="${c.name_uz}" style="object-fit: contain;">` : `<i class="${c.icon}"></i>`}
+                </span>
                 <strong>${c.name_uz}</strong>
             </div>
             <div class="product-actions">
-                <button class="btn-delete" onclick="deleteCategory(${c.id})"><i class="ri-delete-bin-line"></i></button>
+                <button class="btn-edit" onclick="editCategory(${c.id})"><i class="fi fi-rr-pencil"></i></button>
+                <button class="btn-delete" onclick="deleteCategory(${c.id})"><i class="fi fi-rr-trash"></i></button>
             </div>
         </div>
     `).join('');
@@ -356,20 +402,98 @@ async function loadCategories() {
 
 window.openCategoryModal = () => {
     $('#category-form').reset();
+    $('#category-id').value = '';
+    $('#category-icon').value = 'fi fi-rr-box-alt';
+    $('#category-icon-preview').innerHTML = `<i class="fi fi-rr-box-alt"></i>`;
     $('#category-modal').classList.remove('hidden');
+    $('#category-modal-title').textContent = "Kategoriya Qo'shish";
+};
+
+window.openIconPicker = async () => {
+    $('#icon-picker-modal').classList.remove('hidden');
+    const container = $('#icons-grid');
+    container.innerHTML = '<p>Yuklanmoqda...</p>';
+
+    try {
+        const icons = await api(`${ADMIN_API}/icons`);
+        container.innerHTML = '';
+
+        // Add default Flaticon classes option (text input fallback or just common ones)
+        // For now, let's just show the downloaded images
+
+        icons.forEach(iconPath => {
+            const div = document.createElement('div');
+            div.style.cursor = 'pointer';
+            div.style.border = '1px solid #eee';
+            div.style.borderRadius = '8px';
+            div.style.padding = '5px';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+            div.style.height = '60px';
+
+            div.innerHTML = `<img src="${iconPath}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+
+            div.onclick = () => selectIcon(iconPath);
+            container.appendChild(div);
+        });
+    } catch (err) {
+        container.innerHTML = '<p>Xatolik yuz berdi</p>';
+    }
+};
+
+window.selectIcon = (iconPath) => {
+    $('#category-icon').value = iconPath;
+    $('#category-icon-preview').innerHTML = `<img src="${iconPath}" style="width:100%; height:100%; object-fit:contain;">`;
+    closeModal('icon-picker-modal');
 };
 
 $('#category-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = {
         name_uz: $('#category-name-uz').value,
-        icon: $('#category-icon').value,
+        icon: $('#category-icon').value || 'fi fi-rr-box-alt',
         sort_order: $('#category-sort').value
     };
-    await api(`${ADMIN_API}/categories`, 'POST', data);
+
+    // Check if ID exists for update
+    const id = $('#category-id').value;
+    const url = id ? `${ADMIN_API}/categories/${id}` : `${ADMIN_API}/categories`;
+    const method = id ? 'PUT' : 'POST';
+
+    await api(url, method, data);
     closeModal('category-modal');
     loadCategories();
 });
+
+window.editCategory = async (id) => {
+    // We need to fetch the category or find it in the list
+    // Since we don't store the full list in a variable in this snippet, let's fetch it or assume it's refetched
+    // For simplicity, let's just fetch all again or find from DOM if possible. 
+    // Better: GET /categories/:id
+    // But since we don't have that endpoint in server.js (we have /api/admin/categories but it returns all), 
+    // let's just iterate over the currently loaded categories if we can. 
+    // Wait, server.js has `getCategoryById` but the API endpoint `GET /api/admin/categories` returns all. 
+    // Let's just quick fetch list and find.
+
+    const categories = await api(`${ADMIN_API}/categories`);
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+
+    $('#category-id').value = cat.id;
+    $('#category-name-uz').value = cat.name_uz;
+    $('#category-icon').value = cat.icon;
+    $('#category-sort').value = cat.sort_order;
+
+    if (cat.icon.includes('/')) {
+        $('#category-icon-preview').innerHTML = `<img src="${cat.icon}" style="width:100%; height:100%; object-fit:contain;">`;
+    } else {
+        $('#category-icon-preview').innerHTML = `<i class="${cat.icon}"></i>`;
+    }
+
+    $('#category-modal-title').textContent = "Kategoriya Tahrirlash";
+    $('#category-modal').classList.remove('hidden');
+};
 
 window.deleteCategory = async (id) => {
     if (confirm('Kategoriya va uning mahsulotlari o\'chiriladi. Rozimisiz?')) {

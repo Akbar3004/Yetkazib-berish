@@ -394,7 +394,7 @@ button {
     text-align: left;
     color: var(--text-secondary);
     font-size: 12px;
-    uppercase;
+    text-transform: uppercase;
     padding: 12px;
     border-bottom: 1px solid var(--border);
 }
@@ -623,4 +623,33 @@ button {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+/* Badge Count Styles */
+.badge-count {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.85em;
+    margin-left: 6px;
+    display: inline-block;
+    transition: var(--transition);
+}
+
+.badge-count.positive {
+    background: var(--danger);
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.filter-btn.active .badge-count {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.filter-btn.active .badge-count.positive {
+    background: white;
+    color: var(--primary);
 }

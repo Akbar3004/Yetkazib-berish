@@ -352,7 +352,7 @@ function renderCategories() {
     state.categories.forEach(cat => {
         const tab = document.createElement('button');
         tab.className = 'cat-tab' + (state.activeCategory === cat.id ? ' active' : '');
-        tab.textContent = `${cat.icon} ${getCategoryName(cat)}`;
+        tab.innerHTML = `${cat.icon.includes('/') ? `<img src="${cat.icon}" width="24" height="24" alt="" style="vertical-align:middle;margin-right:5px;">` : `<i class="${cat.icon || 'fi fi-rr-box-alt'}"></i>`} ${getCategoryName(cat)}`;
         tab.addEventListener('click', () => {
             state.activeCategory = cat.id;
             renderCategories();
@@ -390,7 +390,7 @@ function renderProducts(searchQuery = null) {
         if (productsToShow.length === 0) {
             container.innerHTML = `
         <div class="favorites-empty">
-          <i class="ri-heart-line"></i>
+          <i class="fi fi-rr-heart"></i>
           <p>${t('favEmpty')}</p>
         </div>
       `;
@@ -403,7 +403,7 @@ function renderProducts(searchQuery = null) {
         container.innerHTML = `
       <div class="search-section">
         <div class="input-group">
-          <i class="ri-search-line"></i>
+          <i class="fi fi-rr-search"></i>
           <input type="text" id="search-main-input" placeholder="${t('searchPlaceholder')}" autofocus>
         </div>
         <div id="search-results"></div>
@@ -448,7 +448,7 @@ function renderProducts(searchQuery = null) {
         if (productsToShow.length === 0) {
             container.innerHTML = `
         <div class="favorites-empty">
-          <i class="ri-search-line"></i>
+          <i class="fi fi-rr-search"></i>
           <p>${t('noResults')}</p>
         </div>
       `;
@@ -488,13 +488,13 @@ function createProductCard(product) {
 
     const imageHtml = product.image
         ? `<img src="${API_URL}${product.image}" alt="${getProductName(product)}" loading="lazy">`
-        : `<span class="product-placeholder">🍽️</span>`;
+        : `<div class="product-placeholder-icon"><i class="fi fi-rr-restaurant"></i></div>`;
 
     card.innerHTML = `
     <div class="product-card-image">
       ${imageHtml}
       <button class="product-fav-btn ${isFav ? 'active' : ''}" data-product-id="${product.id}">
-        <i class="ri-heart-${isFav ? 'fill' : 'line'}"></i>
+        <i class="fi fi-${isFav ? 'sr' : 'rr'}-heart"></i>
       </button>
       ${hasDiscount ? `<span class="product-discount-badge">-${discountPercent}%</span>` : ''}
     </div>
@@ -514,7 +514,7 @@ function createProductCard(product) {
         toggleFavorite(product.id);
         const isNowFav = state.favorites.includes(product.id);
         favBtn.classList.toggle('active', isNowFav);
-        favBtn.innerHTML = `<i class="ri-heart-${isNowFav ? 'fill' : 'line'}"></i>`;
+        favBtn.innerHTML = `<i class="fi fi-${isNowFav ? 'sr' : 'rr'}-heart"></i>`;
     });
 
     // Card click -> product detail
@@ -587,21 +587,21 @@ function renderProfile(container) {
       </div>
       
       <div class="profile-menu-item" id="profile-lang">
-        <i class="ri-global-line"></i>
+        <i class="fi fi-rr-globe"></i>
         <span>${t('changeLang')}</span>
-        <i class="ri-arrow-right-s-line"></i>
+        <i class="fi fi-rr-angle-right"></i>
       </div>
       
       <div class="profile-menu-item" id="profile-address">
-        <i class="ri-map-pin-line"></i>
+        <i class="fi fi-rr-marker"></i>
         <span>${t('changeAddress')}</span>
-        <i class="ri-arrow-right-s-line"></i>
+        <i class="fi fi-rr-angle-right"></i>
       </div>
       
       <div class="profile-menu-item" id="profile-support">
-        <i class="ri-customer-service-line"></i>
+        <i class="fi fi-rr-headset"></i>
         <span>${t('support')}</span>
-        <i class="ri-arrow-right-s-line"></i>
+        <i class="fi fi-rr-angle-right"></i>
       </div>
     </div>
   `;
@@ -649,13 +649,13 @@ function openProductDetail(product) {
     if (product.image) {
         imageContainer.innerHTML = `<img src="${API_URL}${product.image}" alt="${getProductName(product)}">`;
     } else {
-        imageContainer.innerHTML = `<div class="product-placeholder-icon"><i class="ri-restaurant-line"></i></div>`;
+        imageContainer.innerHTML = `<div class="product-placeholder-icon"><i class="fi fi-rr-restaurant"></i></div>`;
     }
 
     // Favorite
     const favBtn = document.getElementById('product-fav');
     const isFav = state.favorites.includes(product.id);
-    favBtn.innerHTML = `<i class="ri-heart-${isFav ? 'fill' : 'line'}"></i>`;
+    favBtn.innerHTML = `<i class="fi fi-${isFav ? 'sr' : 'rr'}-heart"></i>`;
     if (isFav) favBtn.style.color = 'var(--danger)';
     else favBtn.style.color = '';
 
@@ -672,7 +672,7 @@ document.getElementById('product-fav').addEventListener('click', () => {
     toggleFavorite(state.currentProduct.id);
     const isFav = state.favorites.includes(state.currentProduct.id);
     const favBtn = document.getElementById('product-fav');
-    favBtn.innerHTML = `<i class="ri-heart-${isFav ? 'fill' : 'line'}"></i>`;
+    favBtn.innerHTML = `<i class="fi fi-${isFav ? 'sr' : 'rr'}-heart"></i>`;
     if (isFav) favBtn.style.color = 'var(--danger)';
     else favBtn.style.color = '';
 });
@@ -812,9 +812,9 @@ function renderCartItems() {
         <div class="cart-item-price">${formatPrice(item.price * item.quantity)}</div>
       </div>
       <div class="cart-item-controls">
-        <button class="qty-btn cart-qty-minus" data-id="${item.product_id}"><i class="ri-subtract-line"></i></button>
+        <button class="qty-btn cart-qty-minus" data-id="${item.product_id}"><i class="fi fi-rr-minus"></i></button>
         <span class="qty-value">${item.quantity}</span>
-        <button class="qty-btn cart-qty-plus" data-id="${item.product_id}"><i class="ri-add-line"></i></button>
+        <button class="qty-btn cart-qty-plus" data-id="${item.product_id}"><i class="fi fi-rr-plus"></i></button>
       </div>
     `;
 
