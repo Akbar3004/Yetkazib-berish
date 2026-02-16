@@ -4,16 +4,41 @@ const db = require('./database');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
+const WEBHOOK_URL = process.env.WEBHOOK_URL; // Required for Vercel
 
 if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
     console.log('⚠️  BOT_TOKEN .env faylida sozlanmagan!');
-    console.log('📌 BotFather dan token oling va .env faylga yozing.');
     process.exit(1);
 }
 
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+// Initialize bot without polling by default
+const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
-console.log('🤖 Telegram bot ishga tushdi!');
+// Function to initialize bot (set webhook or start polling)
+const initBot = async () => {
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        // Use Webhook in production
+        if (WEBHOOK_URL) {
+            try {
+                await bot.setWebHook(`${WEBHOOK_URL}/api/webhook`);
+                console.log(`🔗 Webhook sozlandi: ${WEBHOOK_URL}/api/webhook`);
+            } catch (error) {
+                console.error('Webhook sozlashda xatolik:', error);
+            }
+        } else {
+            console.warn('⚠️ WEBHOOK_URL sozlanmagan! Bot ishlamasligi mumkin.');
+        }
+    } else {
+        // Use Polling in development
+        try {
+            await bot.deleteWebHook();
+            await bot.startPolling();
+            console.log('🤖 Telegram bot (Polling) ishga tushdi!');
+        } catch (error) {
+            console.error('Polling xatolik:', error);
+        }
+    }
+};
 
 // ===== /start command =====
 bot.onText(/\/start/, async (msg) => {
@@ -21,7 +46,7 @@ bot.onText(/\/start/, async (msg) => {
     const user = msg.from;
 
     // Register customer
-    db.createOrUpdateCustomer({
+    await db.createOrUpdateCustomer({
         telegram_id: user.id,
         first_name: user.first_name || '',
         last_name: user.last_name || '',
@@ -29,15 +54,13 @@ bot.onText(/\/start/, async (msg) => {
         language: user.language_code === 'ru' ? 'ru' : 'uz',
     });
 
-    const customer = db.getCustomerByTelegramId(user.id);
+    const customer = await db.getCustomerByTelegramId(user.id);
     const lang = customer ? customer.language : 'uz';
 
     const welcomeKey = `welcome_${lang}`;
-    const welcomeText = db.getSetting(welcomeKey) || db.getSetting('welcome_uz');
+    const welcomeText = (await db.getSetting(welcomeKey)) || (await db.getSetting('welcome_uz'));
 
-    const shopName = db.getSetting('shop_name') || 'Express Delivery';
-
-    // Greeting message with all 3 languages
+    // Greeting message
     const greetingText = `🇺🇿 Assalomu alaykum! 👋\n\n${welcomeText}`;
 
     await bot.sendMessage(chatId, greetingText, {
@@ -72,7 +95,7 @@ bot.onText(/\/menu/, async (msg) => {
 // ===== /help command =====
 bot.onText(/\/help/, async (msg) => {
     const chatId = msg.chat.id;
-    const shopPhone = db.getSetting('shop_phone') || '+998 90 123 45 67';
+    const shopPhone = (await db.getSetting('shop_phone')) || '+998 90 123 45 67';
 
     await bot.sendMessage(chatId,
         `ℹ️ *Yordam*\n\n` +
@@ -108,9 +131,9 @@ bot.on('callback_query', async (callbackQuery) => {
 
     if (data.startsWith('lang_')) {
         const lang = data.replace('lang_', '');
-        const customer = db.getCustomerByTelegramId(userId);
+        const customer = await db.getCustomerByTelegramId(userId);
         if (customer) {
-            db.createOrUpdateCustomer({
+            await db.createOrUpdateCustomer({
                 telegram_id: userId,
                 first_name: customer.first_name,
                 last_name: customer.last_name,
@@ -126,10 +149,12 @@ bot.on('callback_query', async (callbackQuery) => {
         };
 
         await bot.answerCallbackQuery(callbackQuery.id, { text: messages[lang] });
-        await bot.editMessageText(messages[lang], {
-            chat_id: msg.chat.id,
-            message_id: msg.message_id,
-        });
+        try {
+            await bot.editMessageText(messages[lang], {
+                chat_id: msg.chat.id,
+                message_id: msg.message_id,
+            });
+        } catch (e) { /* ignore if message content is same */ }
     }
 });
 
@@ -138,7 +163,7 @@ bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const phone = msg.contact.phone_number;
 
-    db.updateCustomerPhone(msg.from.id, phone);
+    await db.updateCustomerPhone(msg.from.id, phone);
 
     await bot.sendMessage(chatId, `✅ Telefon raqamingiz saqlandi: ${phone}`);
 });
@@ -147,7 +172,7 @@ bot.on('contact', async (msg) => {
 bot.on('location', async (msg) => {
     const chatId = msg.chat.id;
 
-    db.updateCustomerAddress(
+    await db.updateCustomerAddress(
         msg.from.id,
         `${msg.location.latitude}, ${msg.location.longitude}`,
         msg.location.latitude,
@@ -182,11 +207,11 @@ bot.on('web_app_data', async (msg) => {
 // ===== Notify admin about new order =====
 const notifyNewOrder = async (order) => {
     // You can set admin chat ID in settings
-    const adminChatId = db.getSetting('admin_chat_id');
+    const adminChatId = await db.getSetting('admin_chat_id');
     if (!adminChatId) return;
 
     try {
-        const fullOrder = db.getOrderById(order.id);
+        const fullOrder = await db.getOrderById(order.id);
         if (!fullOrder) return;
 
         let itemsList = '';
@@ -217,4 +242,4 @@ const notifyNewOrder = async (order) => {
     }
 };
 
-module.exports = { bot, notifyNewOrder };
+module.exports = { bot, initBot, notifyNewOrder };

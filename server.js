@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const db = require('./database');
+const { bot, initBot } = require('./bot'); // We will export initBot to start bot logic
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,21 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+// ===== Database Initialization Middleware =====
+app.use(async (req, res, next) => {
+    try {
+        // Ensure DB tables exist on first request (lazy init)
+        if (!global.dbInitialized) {
+            await db.initDb();
+            global.dbInitialized = true;
+        }
+        next();
+    } catch (e) {
+        console.error("DB Init Error:", e);
+        next();
+    }
+});
+
 // ===== Simple Auth Middleware =====
 const adminAuth = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -61,38 +77,38 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ===== PUBLIC API (for Telegram Web App) =====
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
     try {
-        res.json(db.getCategories());
+        res.json(await db.getCategories());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
     try {
         const categoryId = req.query.category_id;
         if (categoryId) {
-            res.json(db.getProductsByCategory(parseInt(categoryId)));
+            res.json(await db.getProductsByCategory(parseInt(categoryId)));
         } else {
-            res.json(db.getProducts());
+            res.json(await db.getProducts());
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/products/popular', (req, res) => {
+app.get('/api/products/popular', async (req, res) => {
     try {
-        res.json(db.getPopularProducts());
+        res.json(await db.getPopularProducts());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/products/:id', (req, res) => {
+app.get('/api/products/:id', async (req, res) => {
     try {
-        const product = db.getProductById(parseInt(req.params.id));
+        const product = await db.getProductById(parseInt(req.params.id));
         if (!product) return res.status(404).json({ error: 'Product not found' });
         res.json(product);
     } catch (err) {
@@ -100,9 +116,9 @@ app.get('/api/products/:id', (req, res) => {
     }
 });
 
-app.get('/api/settings/public', (req, res) => {
+app.get('/api/settings/public', async (req, res) => {
     try {
-        const settings = db.getAllSettings();
+        const settings = await db.getAllSettings();
         res.json({
             shop_name: settings.shop_name,
             shop_phone: settings.shop_phone,
@@ -118,27 +134,27 @@ app.get('/api/settings/public', (req, res) => {
 });
 
 // Customer registration / update
-app.post('/api/customers/register', (req, res) => {
+app.post('/api/customers/register', async (req, res) => {
     try {
-        const customer = db.createOrUpdateCustomer(req.body);
+        const customer = await db.createOrUpdateCustomer(req.body);
         res.json(customer);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/customers/:telegramId/phone', (req, res) => {
+app.put('/api/customers/:telegramId/phone', async (req, res) => {
     try {
-        db.updateCustomerPhone(parseInt(req.params.telegramId), req.body.phone);
+        await db.updateCustomerPhone(parseInt(req.params.telegramId), req.body.phone);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/customers/:telegramId/address', (req, res) => {
+app.put('/api/customers/:telegramId/address', async (req, res) => {
     try {
-        db.updateCustomerAddress(parseInt(req.params.telegramId), req.body.address, req.body.latitude || 0, req.body.longitude || 0);
+        await db.updateCustomerAddress(parseInt(req.params.telegramId), req.body.address, req.body.latitude || 0, req.body.longitude || 0);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -146,18 +162,18 @@ app.put('/api/customers/:telegramId/address', (req, res) => {
 });
 
 // Create order
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
     try {
-        const order = db.createOrder(req.body);
+        const order = await db.createOrder(req.body);
 
-        // Notify admin via bot (if bot is running)
+        // Notify admin via bot
         try {
-            const bot = require('./bot');
-            if (bot.notifyNewOrder) {
-                bot.notifyNewOrder(order);
+            const { notifyNewOrder } = require('./bot');
+            if (notifyNewOrder) {
+                await notifyNewOrder(order);
             }
         } catch (e) {
-            // Bot might not be initialized
+            console.error("Bot notification error:", e);
         }
 
         res.json(order);
@@ -168,44 +184,44 @@ app.post('/api/orders', (req, res) => {
 
 // ===== ADMIN API =====
 // Stats
-app.get('/api/admin/stats', adminAuth, (req, res) => {
+app.get('/api/admin/stats', adminAuth, async (req, res) => {
     try {
-        res.json(db.getStats());
+        res.json(await db.getStats());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // Categories CRUD
-app.get('/api/admin/categories', adminAuth, (req, res) => {
+app.get('/api/admin/categories', adminAuth, async (req, res) => {
     try {
-        res.json(db.getAllCategories());
+        res.json(await db.getAllCategories());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/admin/categories', adminAuth, (req, res) => {
+app.post('/api/admin/categories', adminAuth, async (req, res) => {
     try {
-        const result = db.createCategory(req.body);
-        res.json({ id: result.lastInsertRowid, ...req.body });
+        const result = await db.createCategory(req.body);
+        res.json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/admin/categories/:id', adminAuth, (req, res) => {
+app.put('/api/admin/categories/:id', adminAuth, async (req, res) => {
     try {
-        db.updateCategory(parseInt(req.params.id), req.body);
+        await db.updateCategory(parseInt(req.params.id), req.body);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/admin/categories/:id', adminAuth, (req, res) => {
+app.delete('/api/admin/categories/:id', adminAuth, async (req, res) => {
     try {
-        db.deleteCategory(parseInt(req.params.id));
+        await db.deleteCategory(parseInt(req.params.id));
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -213,15 +229,15 @@ app.delete('/api/admin/categories/:id', adminAuth, (req, res) => {
 });
 
 // Products CRUD
-app.get('/api/admin/products', adminAuth, (req, res) => {
+app.get('/api/admin/products', adminAuth, async (req, res) => {
     try {
-        res.json(db.getAllProducts());
+        res.json(await db.getAllProducts());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/admin/products', adminAuth, upload.single('image'), (req, res) => {
+app.post('/api/admin/products', adminAuth, upload.single('image'), async (req, res) => {
     try {
         const data = { ...req.body };
         if (req.file) {
@@ -232,20 +248,20 @@ app.post('/api/admin/products', adminAuth, upload.single('image'), (req, res) =>
         data.category_id = parseInt(data.category_id);
         data.is_popular = data.is_popular === 'true' || data.is_popular === '1';
         data.sort_order = parseInt(data.sort_order || 0);
-        const result = db.createProduct(data);
-        res.json({ id: result.lastInsertRowid, ...data });
+        const result = await db.createProduct(data);
+        res.json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/admin/products/:id', adminAuth, upload.single('image'), (req, res) => {
+app.put('/api/admin/products/:id', adminAuth, upload.single('image'), async (req, res) => {
     try {
         const data = { ...req.body };
         if (req.file) {
             data.image = `/uploads/${req.file.filename}`;
         } else {
-            const existing = db.getProductById(parseInt(req.params.id));
+            const existing = await db.getProductById(parseInt(req.params.id));
             data.image = data.image || (existing ? existing.image : '');
         }
         data.price = parseInt(data.price);
@@ -254,16 +270,16 @@ app.put('/api/admin/products/:id', adminAuth, upload.single('image'), (req, res)
         data.is_active = data.is_active === 'true' || data.is_active === '1';
         data.is_popular = data.is_popular === 'true' || data.is_popular === '1';
         data.sort_order = parseInt(data.sort_order || 0);
-        db.updateProduct(parseInt(req.params.id), data);
+        await db.updateProduct(parseInt(req.params.id), data);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/admin/products/:id', adminAuth, (req, res) => {
+app.delete('/api/admin/products/:id', adminAuth, async (req, res) => {
     try {
-        db.deleteProduct(parseInt(req.params.id));
+        await db.deleteProduct(parseInt(req.params.id));
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -271,19 +287,19 @@ app.delete('/api/admin/products/:id', adminAuth, (req, res) => {
 });
 
 // Orders
-app.get('/api/admin/orders', adminAuth, (req, res) => {
+app.get('/api/admin/orders', adminAuth, async (req, res) => {
     try {
         const status = req.query.status || null;
         const limit = parseInt(req.query.limit) || 50;
-        res.json(db.getOrders(status, limit));
+        res.json(await db.getOrders(status, limit));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/admin/orders/:id', adminAuth, (req, res) => {
+app.get('/api/admin/orders/:id', adminAuth, async (req, res) => {
     try {
-        const order = db.getOrderById(parseInt(req.params.id));
+        const order = await db.getOrderById(parseInt(req.params.id));
         if (!order) return res.status(404).json({ error: 'Order not found' });
         res.json(order);
     } catch (err) {
@@ -291,9 +307,9 @@ app.get('/api/admin/orders/:id', adminAuth, (req, res) => {
     }
 });
 
-app.put('/api/admin/orders/:id/status', adminAuth, (req, res) => {
+app.put('/api/admin/orders/:id/status', adminAuth, async (req, res) => {
     try {
-        db.updateOrderStatus(parseInt(req.params.id), req.body.status);
+        await db.updateOrderStatus(parseInt(req.params.id), req.body.status);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -301,17 +317,17 @@ app.put('/api/admin/orders/:id/status', adminAuth, (req, res) => {
 });
 
 // Customers
-app.get('/api/admin/customers', adminAuth, (req, res) => {
+app.get('/api/admin/customers', adminAuth, async (req, res) => {
     try {
-        res.json(db.getCustomers());
+        res.json(await db.getCustomers());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/admin/customers/:id', adminAuth, (req, res) => {
+app.get('/api/admin/customers/:id', adminAuth, async (req, res) => {
     try {
-        const customer = db.getCustomerById(parseInt(req.params.id));
+        const customer = await db.getCustomerById(parseInt(req.params.id));
         if (!customer) return res.status(404).json({ error: 'Customer not found' });
         res.json(customer);
     } catch (err) {
@@ -319,9 +335,9 @@ app.get('/api/admin/customers/:id', adminAuth, (req, res) => {
     }
 });
 
-app.put('/api/admin/customers/:id/block', adminAuth, (req, res) => {
+app.put('/api/admin/customers/:id/block', adminAuth, async (req, res) => {
     try {
-        db.blockCustomer(parseInt(req.params.id), req.body.blocked);
+        await db.blockCustomer(parseInt(req.params.id), req.body.blocked);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -329,18 +345,18 @@ app.put('/api/admin/customers/:id/block', adminAuth, (req, res) => {
 });
 
 // Settings
-app.get('/api/admin/settings', adminAuth, (req, res) => {
+app.get('/api/admin/settings', adminAuth, async (req, res) => {
     try {
-        res.json(db.getAllSettings());
+        res.json(await db.getAllSettings());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/api/admin/settings', adminAuth, (req, res) => {
+app.put('/api/admin/settings', adminAuth, async (req, res) => {
     try {
         for (const [key, value] of Object.entries(req.body)) {
-            db.setSetting(key, value);
+            await db.setSetting(key, value);
         }
         res.json({ success: true });
     } catch (err) {
@@ -375,12 +391,37 @@ app.get('/api/admin/icons', adminAuth, (req, res) => {
     }
 });
 
-// ===== Start Server =====
-app.listen(PORT, () => {
-    console.log(`\n🚀 Server ishga tushdi: http://localhost:${PORT}`);
-    console.log(`📱 Telegram Web App: http://localhost:${PORT}/webapp`);
-    console.log(`🖥️  Admin Panel: http://localhost:${PORT}/admin`);
-    console.log(`\n📌 Telegram bot uchun: node bot.js\n`);
+// ===== Telegram Webhook Logic =====
+app.post('/api/webhook', async (req, res) => {
+    try {
+        if (bot) {
+            bot.processUpdate(req.body);
+        }
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Webhook error:', err);
+        res.sendStatus(500);
+    }
 });
+
+// ===== Start Server =====
+// Only listen if not running in production (Vercel handles listening) OR if explicitly started
+if (process.env.NODE_ENV !== 'production' || require.main === module) {
+    app.listen(PORT, async () => {
+        console.log(`\n🚀 Server ishga tushdi: http://localhost:${PORT}`);
+        console.log(`📱 Telegram Web App: http://localhost:${PORT}/webapp`);
+        console.log(`🖥️  Admin Panel: http://localhost:${PORT}/admin`);
+
+        // Initialize Bot (Polling logic if needed, or just setting up)
+        await initBot();
+    });
+}
+
+// Check for Vercel environment
+if (process.env.VERCEL) {
+    // On Vercel, we need to export the app
+    // We also want to init the bot (set webhook etc) if possible, but Vercel functions are stateless
+    // so we just rely on the webhook endpoint.
+}
 
 module.exports = app;
