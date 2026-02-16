@@ -2,20 +2,22 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const db = require('./database');
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
+const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
+const SERVER_URL = process.env.SERVER_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 const WEBHOOK_URL = process.env.WEBHOOK_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
 
+let botEnabled = true;
 if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
-    console.log('⚠️  BOT_TOKEN .env faylida sozlanmagan!');
-    process.exit(1);
+    console.log('⚠️  BOT_TOKEN .env faylida sozlanmagan! Bot o\'chirildi.');
+    botEnabled = false;
 }
 
 // Initialize bot without polling by default
-const bot = new TelegramBot(BOT_TOKEN, { polling: false });
+const bot = botEnabled ? new TelegramBot(BOT_TOKEN, { polling: false }) : null;
 
 // Function to initialize bot (set webhook or start polling)
 const initBot = async () => {
+    if (!bot) return;
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
         // Use Webhook in production
         if (WEBHOOK_URL) {

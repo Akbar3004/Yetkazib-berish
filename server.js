@@ -57,8 +57,10 @@ const adminAuth = (req, res, next) => {
 
     const token = authHeader.replace('Bearer ', '');
     const [username, password] = Buffer.from(token, 'base64').toString().split(':');
+    const envUser = (process.env.ADMIN_USERNAME || '').trim();
+    const envPass = (process.env.ADMIN_PASSWORD || '').trim();
 
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+    if (username === envUser && password === envPass) {
         next();
     } else {
         res.status(401).json({ error: 'Invalid credentials' });
@@ -68,7 +70,9 @@ const adminAuth = (req, res, next) => {
 // ===== Admin Auth =====
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+    const envUser = (process.env.ADMIN_USERNAME || '').trim();
+    const envPass = (process.env.ADMIN_PASSWORD || '').trim();
+    if (username === envUser && password === envPass) {
         const token = Buffer.from(`${username}:${password}`).toString('base64');
         res.json({ success: true, token });
     } else {
@@ -417,11 +421,14 @@ if (process.env.NODE_ENV !== 'production' || require.main === module) {
     });
 }
 
-// Check for Vercel environment
-if (process.env.VERCEL) {
-    // On Vercel, we need to export the app
-    // We also want to init the bot (set webhook etc) if possible, but Vercel functions are stateless
-    // so we just rely on the webhook endpoint.
+// Check for Vercel environment — set webhook on first cold start
+if (process.env.VERCEL && bot) {
+    const webhookUrl = process.env.WEBHOOK_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+    if (webhookUrl) {
+        bot.setWebHook(`${webhookUrl}/api/webhook`)
+            .then(() => console.log(`🔗 Webhook sozlandi: ${webhookUrl}/api/webhook`))
+            .catch(err => console.error('Webhook xatolik:', err));
+    }
 }
 
 module.exports = app;
