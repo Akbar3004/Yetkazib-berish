@@ -4,7 +4,7 @@ const db = require('./database');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
-const WEBHOOK_URL = process.env.WEBHOOK_URL; // Required for Vercel
+const WEBHOOK_URL = process.env.WEBHOOK_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
 
 if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
     console.log('⚠️  BOT_TOKEN .env faylida sozlanmagan!');
